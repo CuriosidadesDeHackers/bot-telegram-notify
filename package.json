@@ -2,9 +2,9 @@
   "name": "kofi-telegram-bot",
   "version": "1.0.0",
   "description": "Bot de Telegram que notifica donaciones de Ko-fi",
-  "main": "netlify/functions/kofi.js",  // Cambiado a kofi.js
+  "main": "netlify/functions/kofi.js",
   "scripts": {
-    "start": "node netlify/functions/kofi.js",  // Cambiado a kofi.js
+    "start": "node netlify/functions/kofi.js",
     "build": "npm install"
   },
   "dependencies": {
