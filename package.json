@@ -1,14 +1,17 @@
 {
-  "dependencies": {
-    "@octokit/core": "^4.2.0",
-    "body-parser": "^1.20.1",
-    "discord-webhook-node": "^1.1.8",
-    "express": "^4.18.2",
-    "request": "^2.88.2",
-    "serverless-http": "^3.1.0",
-    "winston": "^3.8.2"
+  "name": "kofi-telegram-bot",
+  "version": "1.0.0",
+  "description": "Bot de Telegram que notifica donaciones de Ko-fi",
+  "main": "index.js",
+  "scripts": {
+    "start": "node index.js",
+    "build": "npm install"
   },
-  "devDependencies": {
-    "netlify-cli": "^14.0.0"
+  "dependencies": {
+    "express": "^4.17.1",
+    "body-parser": "^1.19.0",
+    "request": "^2.88.2",
+    "winston": "^3.3.3",
+    "@octokit/core": "^3.5.1"
   }
 }
