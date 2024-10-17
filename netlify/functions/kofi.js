@@ -1,9 +1,7 @@
-// Modified from: https://github.com/eramsorgr/kofi-discord-alerts
 const express = require('express');
 const serverless = require('serverless-http');
 const app = express();
 const bodyParser = require('body-parser');
-const { Webhook, MessageBuilder } = require('discord-webhook-node');
 const request = require('request');
 const URL = require("url").URL;
 const { Octokit } = require("@octokit/core");
@@ -37,9 +35,11 @@ app.use('/', async function (req, res) {
 			return false;
 		}
 	};
-	const webhook_url = process.env.WEBHOOK_URL;
-	if (!webhook_url || !stringIsAValidUrl(webhook_url)) {
-		return res.json({ success: false, error: 'Invalid Webhook URL.' });
+
+	const telegram_bot_token = process.env.TELEGRAM_BOT_TOKEN;
+	const telegram_chat_id = process.env.TELEGRAM_CHAT_ID;
+	if (!telegram_bot_token || !telegram_chat_id) {
+		return res.json({ success: false, error: 'Telegram bot token or chat ID is missing.' });
 	}
 
 	const kofi_token = process.env.KOFI_TOKEN;
@@ -47,14 +47,12 @@ app.use('/', async function (req, res) {
 
 	const kofi_username = process.env.KOFI_USERNAME;
 
-	const webhook = new Webhook(webhook_url);
-
 	const gist_url = process.env.GIST_URL;
 	const gist_token = process.env.GIST_TOKEN;
 
 	const octokit = new Octokit({
 		auth: gist_token
-	})
+	});
 
 	// Check if payload data is valid
 	const data = req.body.data;
@@ -68,7 +66,7 @@ app.use('/', async function (req, res) {
 
 	// Strip sensitive info from payload
 	try {
-		censor = '*****';
+		const censor = '*****';
 		payload['verification_token'] = censor;
 		payload['email'] = censor;
 		payload['kofi_transaction_id'] = censor;
@@ -77,38 +75,39 @@ app.use('/', async function (req, res) {
 		return res.json({ success: false, error: 'Payload data invalid.' });
 	}
 
-	// Send Discord embed
+	// Prepare the message for Telegram
 	try {
-		const embed = new MessageBuilder();
+		let message = `☕ *Nueva donación en Ko-fi*\n\n`;
+		message += `*De*: ${payload.from_name}\n`;
+		message += `*Tipo*: ${payload.type}\n`;
+		message += `*Cantidad*: ${payload.amount} ${payload.currency}\n`;
 
-		embed.setAuthor('Ko-fi', 'https://wiki.curiosidadesdehackers.com/wp-content/uploads/2024/02/2023-07-07_18-07-removebg-preview-1.png');
-		embed.setThumbnail('https://wiki.curiosidadesdehackers.com/wp-content/uploads/2024/02/2023-07-07_18-07-removebg-preview-1.png');
-		embed.setTitle('Nueva donación en Ko-fi ☕');
-		if (kofi_username) embed.setURL(`https://ko-fi.com/${kofi_username}`);
-
-		switch (payload.tier_name) {
-			case 'Silver':
-				embed.setColor('#797979');
-			case 'Gold:':
-				embed.setColor('#ffc530');
-			case 'Platinum':
-				embed.setColor('#2ed5ff');
-			default:
-				embed.setColor('#9b59b6');
+		if (payload.message && payload.message !== 'null') {
+			message += `*Mensaje*: ${payload.message}\n`;
 		}
 
-		embed.addField(`De`, `${payload.from_name}`, true);
-		embed.addField(`Tipo`, `${payload.type}`, true);
-		embed.addField(`Cantidad`, `${payload.amount} ${payload.currency}`, true);
-		if (payload.message && payload.message !== 'null')
-			embed.addField(`Mensaje`, `${payload.message}`);
-		embed.setFooter(
-			`¡Gracias por apoyarme!❤️`,
-			`https://wiki.curiosidadesdehackers.com/wp-content/uploads/2024/02/2023-07-07_18-07-removebg-preview-1.png`
-		);
-		embed.setTimestamp();
+		message += `\n¡Gracias por apoyarme! ❤️`;
 
-		await webhook.send(embed);
+		// Send message to Telegram
+		const telegramUrl = `https://api.telegram.org/bot${telegram_bot_token}/sendMessage`;
+
+		request.post({
+			url: telegramUrl,
+			json: {
+				chat_id: telegram_chat_id,
+				text: message,
+				parse_mode: 'Markdown'
+			}
+		}, (error, response, body) => {
+			if (error) {
+				logger.error(error);
+				return res.json({ success: false, error });
+			}
+			if (response.statusCode !== 200) {
+				logger.error(`Telegram API returned error: ${response.statusCode}`);
+				return res.json({ success: false, error: `Telegram API error: ${response.statusCode}` });
+			}
+		});
 	} catch (err) {
 		logger.error(err);
 		return res.json({ success: false, error: err });
@@ -149,7 +148,6 @@ app.use('/', async function (req, res) {
 	});
 
 	async function updateGist(supporters) {
-		// Thanks ChatGPT
 		const url = gist_url;
 		const regex = /\/([\da-f]+)\/raw\//;
 
@@ -171,12 +169,12 @@ app.use('/', async function (req, res) {
 				headers: {
 					'X-GitHub-Api-Version': '2022-11-28'
 				}
-			})
+			});
 			if (gist_res.status == 200) {
 				logger.info(`Updated gist for payload ${payload.message_id}.`);
 				return res.json({ success: true });
 			} else {
-				logger.error(`Failed to update gist: ${res.status}`)
+				logger.error(`Failed to update gist: ${res.status}`);
 				return res.json({ success: false, error: `Update gist failed: ${res.status}` });
 			}
 		} else {
@@ -187,4 +185,3 @@ app.use('/', async function (req, res) {
 });
 
 module.exports.handler = serverless(app);
-
