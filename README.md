@@ -1,3 +1,7 @@
+<a href='https://ko-fi.com/O4O3W3IIA' target='_blank'>
+  <img height='36' style='border:0px;height:36px;' src='https://storage.ko-fi.com/cdn/kofi5.png?v=6' border='0' alt='Buy Me a Coffee at ko-fi.com' />
+</a>
+
 # Webhook para Donaciones Ko-fi y Notificaciones en Telegram
 
 Este proyecto permite recibir notificaciones de donaciones realizadas a través de **Ko-fi** y enviar mensajes automáticamente a un **chat de Telegram**. Además, actualiza un archivo **Gist** con la información de los donantes para llevar un registro de las donaciones.
